@@ -3,9 +3,13 @@ use crate::Server;
 use crate::State;
 use futures::{executor::block_on, prelude::*};
 use http_service::{HttpService, Response};
-use http_types::Request;
+use http_types::{Method, Url};
 use serde::de::DeserializeOwned;
 use std::pin::Pin;
+
+pub use assert_json_diff::assert_json_include;
+pub use http_types::Request;
+pub use serde_json::{json, Value};
 
 pub async fn test_server() -> TestBackend<Server<State>> {
     let server = server().await;
@@ -59,5 +63,56 @@ impl BodyJson for Response {
             println!("body = {}", body);
             Ok(serde_json::from_str(&body)?)
         })
+    }
+}
+
+pub trait MakeRequestBuilder {
+    fn build() -> RequestBuilder;
+}
+
+impl MakeRequestBuilder for Request {
+    fn build() -> RequestBuilder {
+        RequestBuilder {
+            method: None,
+            url: None,
+        }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct RequestBuilder {
+    method: Option<Method>,
+    url: Option<String>,
+}
+
+impl RequestBuilder {
+    pub fn get(mut self) -> Self {
+        self.method = Some(Method::Get);
+        self
+    }
+    pub fn post(mut self) -> Self {
+        self.method = Some(Method::Post);
+        self
+    }
+    pub fn Path(mut self) -> Self {
+        self.method = Some(Method::Patch);
+        self
+    }
+    pub fn put(mut self) -> Self {
+        self.method = Some(Method::Put);
+        self
+    }
+    pub fn delete(mut self) -> Self {
+        self.method = Some(Method::Delete);
+        self
+    }
+    pub fn url(mut self, url: &str) -> Self {
+        self.url = Some(url.to_string());
+        self
+    }
+    pub fn send(self, server: &mut TestBackend<Server<State>>) -> Response {
+        let url = Url::parse(&format!("http://example.com{}", self.url.unwrap())).unwrap();
+        let req = Request::new(Method::Get, url);
+        server.simulate(req).unwrap()
     }
 }

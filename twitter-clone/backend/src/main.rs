@@ -1,10 +1,13 @@
+use serde::Serialize;
 use serde_json::json;
+use sqlx::query_as;
 use sqlx::PgPool;
 use sqlx::Pool;
 use tide::http::StatusCode;
 use tide::Request;
 use tide::Response;
 use tide::Server;
+use uuid::Uuid;
 
 #[cfg(test)]
 mod tests;
@@ -15,22 +18,44 @@ async fn main() {
     app.listen("127.0.0.1:8080").await.unwrap();
 }
 
+#[cfg(not(test))]
+async fn make_db_pool() -> PgPool {
+    let db_url = std::env::var("DATABASE_URL").unwrap();
+    Pool::new(&db_url).await.unwrap()
+}
+
+#[cfg(test)]
+async fn make_db_pool() -> PgPool {
+    let db_url = std::env::var("DATABASE_URL").unwrap();
+    Pool::new(&db_url).await.unwrap()
+}
+
 pub async fn server() -> Server<State> {
     dotenv::dotenv().ok();
     pretty_env_logger::init();
-    let db_url = std::env::var("DATABASE_URL").unwrap();
-    let db_pool: PgPool = Pool::new(&db_url).await.unwrap();
-
+    let db_pool = make_db_pool().await;
     let mut app: Server<State> = Server::with_state(State { db_pool });
 
-    app.at("/").get(|_req: Request<State>| async move {
-        let json = json!([1, 2, 3]);
-        Ok(Response::new(StatusCode::Ok).body_json(&json)?)
+    app.at("/users").get(|req: Request<State>| async move {
+        // let db_pool: &PgPool = &req.state().db_pool;
+        // let users = query_as!(User, "select id, username from users")
+        //     .fetch_all(db_pool)
+        //     .await?;
+        // Ok(Response::new(StatusCode::Ok).body_json(&users)?)
+
+        Ok(Response::new(StatusCode::Ok).body_json(&json!([]))?)
     });
+
     app
 }
 
 #[derive(Debug)]
 pub struct State {
     db_pool: PgPool,
+}
+
+#[derive(Debug, Serialize)]
+struct User {
+    id: Uuid,
+    username: String,
 }
