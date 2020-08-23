@@ -1,8 +1,8 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::json;
-use sqlx::query_as;
 use sqlx::PgPool;
 use sqlx::Pool;
+use sqlx::{query, query_as};
 use tide::http::StatusCode;
 use tide::Request;
 use tide::Response;
@@ -36,15 +36,31 @@ pub async fn server() -> Server<State> {
     let db_pool = make_db_pool().await;
     let mut app: Server<State> = Server::with_state(State { db_pool });
 
-    app.at("/users").get(|req: Request<State>| async move {
-        // let db_pool: &PgPool = &req.state().db_pool;
-        // let users = query_as!(User, "select id, username from users")
-        //     .fetch_all(db_pool)
-        //     .await?;
-        // Ok(Response::new(StatusCode::Ok).body_json(&users)?)
-
-        Ok(Response::new(StatusCode::Ok).body_json(&json!([]))?)
-    });
+    app.at("/users")
+        .get(|req: Request<State>| async move {
+            let db_pool: &PgPool = &req.state().db_pool;
+            let users = query_as!(User, "select id, username from users")
+                .fetch_all(db_pool)
+                .await?;
+            Ok(Response::new(StatusCode::Ok).body_json(&users)?)
+        })
+        .post(|mut req: Request<State>| async move {
+            dbg!(&req);
+            let db_pool = &req.state().db_pool.clone();
+            let create_user = req.body_json::<CreateUser>().await?;
+            dbg!(&db_pool);
+            query!(
+                r#"
+                    insert into users (id, username)
+                    values($1, $2)
+                "#,
+                Uuid::new_v4(),
+                create_user.username
+            )
+            .execute(&*db_pool)
+            .await?;
+            Ok(Response::new(StatusCode::Created).body_json(&json!([]))?)
+        });
 
     app
 }
@@ -56,6 +72,12 @@ pub struct State {
 
 #[derive(Debug, Serialize)]
 struct User {
+    id: Uuid,
+    username: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct CreateUser {
     id: Uuid,
     username: String,
 }
