@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["strict_hash_verification","Controls whether or not libgit2 will verify that objects loaded have the expected hash. Enabled by default, but disabling this can significantly improve performance, at the cost of relying on repository integrity without checking it."]]});
