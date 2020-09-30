@@ -39,23 +39,22 @@ fn main() {
         let mut next_in_fueling: Option<&(i32, String, String)>;
         let next_vehicle: &(i32, String, String) = &input[count];
 
-        if next_vehicle.2 == "C" && cleaning_waiting_list.is_empty() {
-            next_in_cleaning = Some(next_vehicle);
-        } else {
-            cleaning_waiting_list.push_back(&next_vehicle);
-        }
-        if next_vehicle.2 == "R" && fueling_waiting_list.is_empty() {
-            next_in_fueling = Some(next_vehicle);
-        } else {
-            fueling_waiting_list.push_back(&next_vehicle);
-        }
-
-        if !fueling_waiting_list.is_empty() {
-            next_in_fueling = fueling_waiting_list.pop_front();
-        }
-
-        if !cleaning_waiting_list.is_empty() {
-            next_in_cleaning = cleaning_waiting_list.pop_front();
+        if next_vehicle.2 == "C" {
+            if cleaning_waiting_list.is_empty() {
+                next_in_cleaning = Some(&next_vehicle);
+            } else {
+                next_in_cleaning = cleaning_waiting_list.pop_front();
+                cleaning_waiting_list.push_back(next_vehicle)
+            }
+            dbg!(&next_in_cleaning);
+        } else if next_vehicle.2 == "R" {
+            if fueling_waiting_list.is_empty() {
+                next_in_fueling = Some(&next_vehicle);
+            } else {
+                next_in_fueling = fueling_waiting_list.pop_front();
+                fueling_waiting_list.push_back(next_vehicle)
+            }
+            dbg!(&next_in_fueling);
         }
         count += 1;
     }
