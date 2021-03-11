@@ -1,4 +1,5 @@
 #[macro_export]
+
 macro_rules! avec {
    ($($element: expr),* $(,)?) => {{
        const C: usize = $crate::count![@COUNT; $($element),*];
